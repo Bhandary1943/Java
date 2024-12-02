@@ -21,7 +21,7 @@ from sklearn.neighbors import NearestNeighbors
 
 # Download NLTK data
 nltk.download('stopwords')
-# nltk.download('punkt')
+nltk.download('punkt')
 nltk.download('wordnet')
 
 # Load the Dataset
