@@ -27,7 +27,8 @@ nltk.download('punkt')
 nltk.download('wordnet')
 
 # Load the Dataset
-df = pd.read_csv('cleaned_file.csv')
+df = pd.read_csv(r'C:\Users\reeth\Documents\RESUME ANALYZER\cleaned_file.csv')
+
 
 
 relevant_keywords = ['iot', 'cybersecurity', 'machine learning', 'ai', 'data science', 'blockchain', 'developer', 'engineer', 'software', 'embedded', 'technologist']
