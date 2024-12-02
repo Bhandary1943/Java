@@ -1,8 +1,10 @@
 # from tkinter import Image
+import nltk
+import streamlit as st
 from PIL import Image
 # pip install nltk
 import streamlit as st
-import nltk
+# import nltk
 # import streamlit as st
 import pandas as pd
 import re
