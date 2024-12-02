@@ -1,9 +1,12 @@
 # from tkinter import Image
 from PIL import Image
+!pip install nltk
 import streamlit as st
+import nltk
+# import streamlit as st
 import pandas as pd
 import re
-import nltk
+# import nltk
 import numpy as np
 import matplotlib.pyplot as plt
 import smtplib
