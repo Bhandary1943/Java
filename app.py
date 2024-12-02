@@ -1,6 +1,6 @@
 # from tkinter import Image
 from PIL import Image
-!pip install nltk
+pip install nltk
 import streamlit as st
 import nltk
 # import streamlit as st
