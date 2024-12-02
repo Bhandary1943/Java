@@ -1,6 +1,7 @@
 # from tkinter import Image
 import nltk
 import streamlit as st
+import os
 from PIL import Image
 # pip install nltk
 import streamlit as st
@@ -27,7 +28,10 @@ nltk.download('punkt')
 nltk.download('wordnet')
 
 # Load the Dataset
-df = pd.read_csv(r'C:\Users\reeth\Documents\RESUME ANALYZER\cleaned_file.csv')
+if os.path.exists('cleaned_file.csv'):
+    df = pd.read_csv('cleaned_file.csv')
+else:
+    print("File not found in the app directory!")
 
 
 
