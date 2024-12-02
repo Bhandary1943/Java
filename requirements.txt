@@ -1,0 +1,6 @@
+nltk==3.9.1
+streamlit
+nltk
+pandas
+numpy
+matplotlib
