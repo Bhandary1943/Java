@@ -1,9 +1,7 @@
 import streamlit as st
 import pandas as pd
-import os
 import nltk
 import re
-from PIL import Image
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
@@ -31,22 +29,25 @@ def clean_text(txt):
     tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words and word.isalpha()]
     return ' '.join(tokens)
 
-# Initialize an empty dataframe at the start
-df = pd.DataFrame()
-
 # Handle File Upload
 uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 if uploaded_file is not None:
     try:
         # Read the uploaded CSV file into a DataFrame
-        df = pd.read_csv(uploaded_file)
+        df = pd.read_csv('cleaned_file.csv')
         
+        # Debugging: Display the columns of the uploaded file
+        st.write("Columns in the uploaded CSV file:", df.columns)
+
         # Check if the necessary columns ('Job Title' and 'Skills') are in the DataFrame
         if 'Job Title' not in df.columns or 'Skills' not in df.columns:
             st.error("The required columns 'Job Title' or 'Skills' are missing in the uploaded file.")
         else:
             st.success("File uploaded successfully")
             
+            # Handle missing values (if any) in 'Job Title' or 'Skills' columns
+            df = df.dropna(subset=['Job Title', 'Skills'])
+
             # Apply cleaning function to job title and skills
             df['cleaned_job_title'] = df['Job Title'].apply(clean_text)
             df['cleaned_skills'] = df['Skills'].apply(clean_text)
@@ -84,6 +85,7 @@ if not df.empty:
 
     knn = NearestNeighbors(n_neighbors=5, metric='cosine')
     knn.fit(X)
+
 
 
 st.markdown("""<style>
