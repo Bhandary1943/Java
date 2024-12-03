@@ -24,9 +24,9 @@ uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 if uploaded_file is not None:
     try:
         # Read the uploaded CSV file into a DataFrame
-        df = pd.read_csv('cleaned_file.csv')
+       df = pd.read_csv('cleaned_file.csv')
         
-        # Display column names to help debug
+        # Display the column names of the uploaded file to debug
         st.write("Uploaded file columns:", df.columns)
 
         # Check if the necessary columns ('Job Title' and 'Skills') are in the DataFrame
@@ -49,12 +49,19 @@ if uploaded_file is not None:
             # Keep only relevant job titles
             df['relevant'] = df['cleaned_job_title'].apply(is_relevant_job)
             df = df[df['relevant']]  # Filter the dataframe to keep only relevant rows
+            
+            # Sort and get unique job titles
+            if 'Job Title' in df.columns:
+                job_titles = df['Job Title'].sort_values().unique()  # Alphabetical order
+                st.write("Unique Job Titles:", job_titles)
+            else:
+                st.error("'Job Title' column is missing in the uploaded file")
+
     except Exception as e:
         st.error(f"Error reading the uploaded file: {e}")
 
-# Check if the DataFrame is empty
+# If the DataFrame is not empty, continue with further processing
 if not df.empty:
-    # Continue with the remaining processing...
     # Initialize TF-IDF Vectorizer and KNN Model
     vectorizer = TfidfVectorizer(max_features=5000)
     job_descriptions = df['Skills'].apply(clean_text).tolist()
