@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
+import os
 import nltk
 import re
+from PIL import Image
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
@@ -14,22 +16,9 @@ nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
 
-# Predefined relevant keywords for job filtering
-relevant_keywords = ['iot', 'cybersecurity', 'machine learning', 'ai', 'data science', 'blockchain', 
-                     'developer', 'engineer', 'software', 'embedded', 'technologist']
-
-# Define the cleaning function for text data
-def clean_text(txt):
-    stop_words = set(stopwords.words('english'))
-    lemmatizer = WordNetLemmatizer()
-    clean_text = re.sub(r'http\S+\s|RT|cc|#\S+\s|@\S+|[^\x00-\x7f]', ' ', str(txt))
-    clean_text = re.sub(r'[%s]' % re.escape("""!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"""), ' ', clean_text)
-    clean_text = re.sub(r'\s+', ' ', clean_text).strip().lower()
-    tokens = word_tokenize(clean_text)
-    tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words and word.isalpha()]
-    return ' '.join(tokens)
-
+# Initialize an empty DataFrame to avoid NameError
 df = pd.DataFrame()
+
 # Handle File Upload
 uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 if uploaded_file is not None:
@@ -37,8 +26,8 @@ if uploaded_file is not None:
         # Read the uploaded CSV file into a DataFrame
         df = pd.read_csv('cleaned_file.csv')
         
-        # Debugging: Display the columns of the uploaded file
-        st.write("Columns in the uploaded CSV file:", df.columns)
+        # Display column names to help debug
+        st.write("Uploaded file columns:", df.columns)
 
         # Check if the necessary columns ('Job Title' and 'Skills') are in the DataFrame
         if 'Job Title' not in df.columns or 'Skills' not in df.columns:
@@ -46,9 +35,6 @@ if uploaded_file is not None:
         else:
             st.success("File uploaded successfully")
             
-            # Handle missing values (if any) in 'Job Title' or 'Skills' columns
-            df = df.dropna(subset=['Job Title', 'Skills'])
-
             # Apply cleaning function to job title and skills
             df['cleaned_job_title'] = df['Job Title'].apply(clean_text)
             df['cleaned_skills'] = df['Skills'].apply(clean_text)
@@ -63,29 +49,24 @@ if uploaded_file is not None:
             # Keep only relevant job titles
             df['relevant'] = df['cleaned_job_title'].apply(is_relevant_job)
             df = df[df['relevant']]  # Filter the dataframe to keep only relevant rows
-
     except Exception as e:
-        st.error(f"Error occurred while processing the file: {str(e)}")
+        st.error(f"Error reading the uploaded file: {e}")
 
-# Extract text from PDF using PyMuPDF
-def extract_text_from_pdf(uploaded_file):
-    text = ""
-    try:
-        with fitz.open(stream=uploaded_file.read(), filetype="pdf") as doc:
-            for page in doc:
-                text += page.get_text()
-    except Exception as e:
-        st.error(f"Failed to extract text from the PDF: {e}")
-    return text
-
-# Initialize TF-IDF Vectorizer and KNN Model
+# Check if the DataFrame is empty
 if not df.empty:
+    # Continue with the remaining processing...
+    # Initialize TF-IDF Vectorizer and KNN Model
     vectorizer = TfidfVectorizer(max_features=5000)
     job_descriptions = df['Skills'].apply(clean_text).tolist()
     X = vectorizer.fit_transform(job_descriptions)
 
     knn = NearestNeighbors(n_neighbors=5, metric='cosine')
     knn.fit(X)
+else:
+    st.warning("Please upload a valid CSV file containing job titles and skills.")
+
+# Continue with the rest of your code (e.g., navigation and other page logic)
+
 
 
 
