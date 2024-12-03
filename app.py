@@ -1,148 +1,181 @@
-# from tkinter import Image
 import streamlit as st
-import nltk
-import os
 import pandas as pd
+import nltk
 import re
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
+import os
 
 # Download NLTK data
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
 
-# Load the Dataset
-if os.path.exists('cleaned_file.csv'):
-    df = pd.read_csv('cleaned_file.csv')
-else:
-    st.error("CSV file not found in the app directory!")
-    df = pd.DataFrame()  # Create an empty DataFrame if file is missing
+# Handle file upload
+uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
-# Check if the DataFrame is loaded correctly
-if not df.empty:
-    st.write(df.head())  # Display the first few rows for debugging
-else:
-    st.error("The DataFrame is empty or not loaded correctly.")
-
-# Predefined relevant keywords
-relevant_keywords = ['iot', 'cybersecurity', 'machine learning', 'ai', 'data science', 'blockchain', 
-                     'developer', 'engineer', 'software', 'embedded', 'technologist']
-
-# Define the text cleaning function
-def clean_text(txt):
-    stop_words = set(stopwords.words('english'))
-    lemmatizer = WordNetLemmatizer()
-    clean_text = re.sub(r'http\S+\s|RT|cc|#\S+\s|@\S+|[^\x00-\x7f]', ' ', str(txt))
-    clean_text = re.sub(r'[%s]' % re.escape("""!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"""), ' ', clean_text)
-    clean_text = re.sub(r'\s+', ' ', clean_text).strip().lower()
-    tokens = word_tokenize(clean_text)
-    tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words and word.isalpha()]
-    return ' '.join(tokens)
-
-# Check if 'Job Title' and 'Skills' columns exist in the DataFrame
-if 'Job Title' in df.columns and 'Skills' in df.columns:
-    try:
+# Check if the file is uploaded
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+    st.write("CSV Loaded Successfully!")
+    
+    # Display column names to check if 'Job Title' and 'Skills' are present
+    st.write("Columns in the uploaded CSV file:")
+    st.write(df.columns)
+    
+    if 'Job Title' in df.columns and 'Skills' in df.columns:
+        # Define the text cleaning function
+        def clean_text(txt):
+            stop_words = set(stopwords.words('english'))
+            lemmatizer = WordNetLemmatizer()
+            clean_text = re.sub(r'http\S+\s|RT|cc|#\S+\s|@\S+|[^\x00-\x7f]', ' ', str(txt))
+            clean_text = re.sub(r'[%s]' % re.escape("""!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"""), ' ', clean_text)
+            clean_text = re.sub(r'\s+', ' ', clean_text).strip().lower()
+            tokens = word_tokenize(clean_text)
+            tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words and word.isalpha()]
+            return ' '.join(tokens)
+        
         # Apply the cleaning function
         df['cleaned_job_title'] = df['Job Title'].apply(clean_text)
         df['cleaned_skills'] = df['Skills'].apply(clean_text)
-    except Exception as e:
-        st.error(f"An error occurred while applying the cleaning function: {e}")
-        print(e)  # Log the error for debugging
+
+        # Remove duplicate rows based on cleaned job titles and skills
+        df = df.drop_duplicates(subset=['cleaned_job_title', 'cleaned_skills'])
+
+        # Filter out irrelevant job titles based on keywords (enhanced filtering)
+        relevant_keywords = ['iot', 'cybersecurity', 'machine learning', 'ai', 'data science', 'blockchain', 
+                             'developer', 'engineer', 'software', 'embedded', 'technologist']
+
+        def is_relevant_job(title):
+            return any(keyword in title for keyword in relevant_keywords) and ('marine' not in title)
+
+        # Keep only relevant job titles
+        df['relevant'] = df['cleaned_job_title'].apply(is_relevant_job)
+        df = df[df['relevant']]  # Filter the dataframe to keep only relevant rows
+
+        # Display cleaned and filtered data
+        st.write("Cleaned and Relevant Data:")
+        st.write(df.head())
+
+    else:
+        st.error("Missing required columns: 'Job Title' or 'Skills'")
+
 else:
-    st.error("Missing required columns: 'Job Title' or 'Skills'")
+    st.error("No file uploaded.")
 
-# Remove duplicate rows based on cleaned job titles and skills
-if not df.empty:
-    df = df.drop_duplicates(subset=['cleaned_job_title', 'cleaned_skills'])
-
-    # Filter out irrelevant job titles based on keywords (enhanced filtering)
-    def is_relevant_job(title):
-        return any(keyword in title for keyword in relevant_keywords) and ('marine' not in title)
-
-    # Keep only relevant job titles
-    df['relevant'] = df['cleaned_job_title'].apply(is_relevant_job)
-    df = df[df['relevant']]  # Filter the dataframe to keep only relevant rows
-else:
-    st.error("Dataframe is empty, unable to clean or filter job titles.")
-
-# Display the cleaned data (optional for debugging)
-if not df.empty:
-    st.write(df.head())  # Show cleaned job titles and skills
-else:
-    st.error("No relevant data to display.")
-
-# CSS for custom styling
+# Custom CSS styling
 st.markdown("""
     <style>
         body {
-            background-color: #f0f0f0;  /* Light grey background */
-            font-family: 'Arial', sans-serif;
+            background-color: grey;  /* Light, clean background */
+            color: pink;
+            font-family: Georgia, 'Times New Roman', Times, serif;
         }
 
         .title {
             text-align: center;
-            color: #003366;  /* Dark Blue */
-            font-size: 36px;
-            font-weight: bold;
+            color: blue;  /* Bright Blue */
+            font-size: 30px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-family: Georgia, 'Times New Roman', Times, serif;
         }
 
         .subtitle {
-            text-align: center;
-            color: #ff6600;  /* Orange */
-            font-size: 24px;
-            font-weight: 600;
+            text-align: left;
+            font-size: 20px;
+            color: red;
+            font-weight: 650;
+            font-family: Arial, Helvetica, sans-serif;
         }
 
         .footer {
             text-align: center;
             padding: 20px;
-            background-color: #003366;  /* Dark Blue */
             color: white;
+            background-color: #1d61b4;
             font-size: 14px;
         }
 
-        .cleaned-data {
-            text-align: center;
+        .job-item {
+            background-color: #ff6f61;
+            color: white;
+            border-radius: 15px;
             font-size: 18px;
             font-weight: bold;
+            text-align: center;
+            box-sizing: border-box;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .job-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            background-color: #ff4b39;
+        }
+
+        .load-more-btn {
+            background-color: #64b5f6;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 50px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            animation: pulse 1s infinite;
+            padding: 15px 30px;
+        }
+
+        .load-more-btn:hover {
+            background-color: #039be5;
+            transform: scale(1.05);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
 
         table {
             width: 100%;
-            border-collapse: collapse;
-        }
-
-        table, th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #003366;
-            color: white;
-        }
-
-        .load-more-btn {
-            background-color: #28a745;  /* Green */
-            color: white;
-            padding: 15px 30px;
-            font-size: 20px;
-            border-radius: 50px;
             text-align: center;
-            cursor: pointer;
+            border-collapse: collapse;
             margin-top: 20px;
         }
 
-        .load-more-btn:hover {
-            background-color: #218838;  /* Darker Green */
-            transform: scale(1.05);
+        table, th, td {
+            border: 1px solid #5e92f3;
+            border-radius: 5px;
+        }
+
+        th, td {
+            padding: 12px;
+            background-color: #f3f9fc;
+        }
+
+        th {
+            background-color: #1976d2;
+            color: white;
         }
 
     </style>
 """, unsafe_allow_html=True)
+
+# Sidebar Navigation
+st.sidebar.title("Navigation")
+page = st.sidebar.selectbox("Go to", ["Home", "About Us", "Resume Analyzer", "Find Jobs", "Enhance Skills", "Contact Us"])
+
+# Header (no line breaks, ensures single-line heading)
+st.markdown("<div class='title'>Intelligent Resume Analysis And Job Fit Assessment System</div>", unsafe_allow_html=True)
 
 # Add additional Streamlit UI components here as needed
 
