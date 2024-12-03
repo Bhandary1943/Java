@@ -45,13 +45,16 @@ def clean_text(txt):
     return ' '.join(tokens)
 
 # Apply the cleaning function
-df['cleaned_job_title'] = df['Job Title'].apply(clean_text)
-df['cleaned_skills'] = df['Skills'].apply(clean_text)
+if not df.empty:
+    df['cleaned_job_title'] = df['Job Title'].apply(clean_text)
+    df['cleaned_skills'] = df['Skills'].apply(clean_text)
 
-# Preview the cleaned data (optional for debugging)
+    # Remove duplicate rows based on cleaned job titles and skills
+    df = df.drop_duplicates(subset=['cleaned_job_title', 'cleaned_skills'])
+
 
 # Remove duplicate rows based on cleaned job titles and skills
-df = df.drop_duplicates(subset=['cleaned_job_title', 'cleaned_skills'])
+# df = df.drop_duplicates(subset=['cleaned_job_title', 'cleaned_skills'])
 
 # Filter out irrelevant job titles based on keywords (enhanced filtering)
 def is_relevant_job(title):
