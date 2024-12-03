@@ -4,34 +4,33 @@ import nltk
 import os
 import pandas as pd
 import re
-import numpy as np
-import matplotlib.pyplot as plt
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
-import fitz  # PyMuPDF for PDF handling
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.neighbors import NearestNeighbors
 
 # Download NLTK data
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
 
-# Check if the cleaned file exists in the directory
+# Load the Dataset
 if os.path.exists('cleaned_file.csv'):
     df = pd.read_csv('cleaned_file.csv')
-    st.write("CSV file loaded successfully!")
 else:
-    st.error("File not found in the app directory!")
+    st.error("CSV file not found in the app directory!")
+    df = pd.DataFrame()  # Create an empty DataFrame if file is missing
 
+# Check if the DataFrame is loaded correctly
+if not df.empty:
+    st.write(df.head())  # Display the first few rows for debugging
+else:
+    st.error("The DataFrame is empty or not loaded correctly.")
+
+# Predefined relevant keywords
 relevant_keywords = ['iot', 'cybersecurity', 'machine learning', 'ai', 'data science', 'blockchain', 
                      'developer', 'engineer', 'software', 'embedded', 'technologist']
 
-# Define the cleaning function
+# Define the text cleaning function
 def clean_text(txt):
     stop_words = set(stopwords.words('english'))
     lemmatizer = WordNetLemmatizer()
@@ -42,89 +41,110 @@ def clean_text(txt):
     tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words and word.isalpha()]
     return ' '.join(tokens)
 
-# Apply the cleaning function
-df['cleaned_job_title'] = df['Job Title'].apply(clean_text)
-df['cleaned_skills'] = df['Skills'].apply(clean_text)
+# Check if 'Job Title' and 'Skills' columns exist in the DataFrame
+if 'Job Title' in df.columns and 'Skills' in df.columns:
+    try:
+        # Apply the cleaning function
+        df['cleaned_job_title'] = df['Job Title'].apply(clean_text)
+        df['cleaned_skills'] = df['Skills'].apply(clean_text)
+    except Exception as e:
+        st.error(f"An error occurred while applying the cleaning function: {e}")
+        print(e)  # Log the error for debugging
+else:
+    st.error("Missing required columns: 'Job Title' or 'Skills'")
 
 # Remove duplicate rows based on cleaned job titles and skills
-df = df.drop_duplicates(subset=['cleaned_job_title', 'cleaned_skills'])
+if not df.empty:
+    df = df.drop_duplicates(subset=['cleaned_job_title', 'cleaned_skills'])
 
-# Filter out irrelevant job titles based on keywords (enhanced filtering)
-def is_relevant_job(title):
-    return any(keyword in title for keyword in relevant_keywords) and ('marine' not in title)
+    # Filter out irrelevant job titles based on keywords (enhanced filtering)
+    def is_relevant_job(title):
+        return any(keyword in title for keyword in relevant_keywords) and ('marine' not in title)
 
-# Keep only relevant job titles
-df['relevant'] = df['cleaned_job_title'].apply(is_relevant_job)
-df = df[df['relevant']]  # Filter the dataframe to keep only relevant rows
+    # Keep only relevant job titles
+    df['relevant'] = df['cleaned_job_title'].apply(is_relevant_job)
+    df = df[df['relevant']]  # Filter the dataframe to keep only relevant rows
+else:
+    st.error("Dataframe is empty, unable to clean or filter job titles.")
 
-# Display a preview of the cleaned data
-st.write(df[['Job Title', 'cleaned_job_title', 'Skills', 'cleaned_skills']].head())
+# Display the cleaned data (optional for debugging)
+if not df.empty:
+    st.write(df.head())  # Show cleaned job titles and skills
+else:
+    st.error("No relevant data to display.")
 
-# Extract job titles and skills from the CSV file
-job_titles = df['Job Title'].sort_values().unique()  # Alphabetical order
-skills_dict = dict(zip(df['Job Title'], df['Skills']))
+# CSS for custom styling
+st.markdown("""
+    <style>
+        body {
+            background-color: #f0f0f0;  /* Light grey background */
+            font-family: 'Arial', sans-serif;
+        }
 
-# Sidebar Navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.selectbox("Go to", ["Home", "About Us", "Resume Analyzer", "Find Jobs", "Enhance Skills", "Contact Us"])
+        .title {
+            text-align: center;
+            color: #003366;  /* Dark Blue */
+            font-size: 36px;
+            font-weight: bold;
+        }
 
-# Display Header
-st.markdown("<div class='title'>Intelligent Resume Analysis And Job Fit Assessment System</div>", unsafe_allow_html=True)
+        .subtitle {
+            text-align: center;
+            color: #ff6600;  /* Orange */
+            font-size: 24px;
+            font-weight: 600;
+        }
 
-# Example of how to handle PDF file uploads for text extraction
-uploaded_pdf = st.file_uploader("Upload a PDF file for job description", type="pdf")
-    
-if uploaded_pdf is not None:
-    text = extract_text_from_pdf(uploaded_pdf)
-    st.write(text)
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #003366;  /* Dark Blue */
+            color: white;
+            font-size: 14px;
+        }
 
-# Initialize TF-IDF Vectorizer and KNN Model
-vectorizer = TfidfVectorizer(max_features=5000)
-job_descriptions = df['Skills'].apply(clean_text).tolist()
-X = vectorizer.fit_transform(job_descriptions)
+        .cleaned-data {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
 
-knn = NearestNeighbors(n_neighbors=5, metric='cosine')
-knn.fit(X)
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
 
-# Function to extract text from PDF
-def extract_text_from_pdf(uploaded_file):
-    text = ""
-    try:
-        with fitz.open(stream=uploaded_file.read(), filetype="pdf") as doc:
-            for page in doc:
-                text += page.get_text()
-    except Exception as e:
-        st.error(f"Failed to extract text from the PDF: {e}")
-    return text
+        table, th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
 
-# Customize Streamlit app style
-st.markdown("""<style>
-    body {
-        background-color: grey;  
-        color: pink;
-        font-family: Georgia, 'Times New Roman', Times, serif;
-    }
-    .title {
-        text-align: center;
-        color: blue;  
-        font-size: 30px;
-        font-weight: 700;
-        text-transform: uppercase;
-    }
-    .footer {
-        text-align: center;
-        padding: 20px;
-        color: white;
-        background-color: #1d61b4;
-        font-size: 14px;
-    }
-</style>""", unsafe_allow_html=True)
+        th {
+            background-color: #003366;
+            color: white;
+        }
 
-# Add interactive elements like buttons
-st.button("Explore More Jobs")
+        .load-more-btn {
+            background-color: #28a745;  /* Green */
+            color: white;
+            padding: 15px 30px;
+            font-size: 20px;
+            border-radius: 50px;
+            text-align: center;
+            cursor: pointer;
+            margin-top: 20px;
+        }
 
-# Footer
-st.markdown("<div class='footer'>Intelligent Resume Analysis and Job Fit Assessment System. All rights reserved.</div>", unsafe_allow_html=True)
+        .load-more-btn:hover {
+            background-color: #218838;  /* Darker Green */
+            transform: scale(1.05);
+        }
+
+    </style>
+""", unsafe_allow_html=True)
+
+# Add additional Streamlit UI components here as needed
 
 
 # Check which page to display using if-else statements
