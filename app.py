@@ -1,15 +1,9 @@
 # from tkinter import Image
+import streamlit as st
 import nltk
-import streamlit as st
 import os
-from PIL import Image
-# pip install nltk
-import streamlit as st
-# import nltk
-# import streamlit as st
 import pandas as pd
 import re
-# import nltk
 import numpy as np
 import matplotlib.pyplot as plt
 import smtplib
@@ -27,28 +21,28 @@ nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
 
-# Load the Dataset
+# Check if the cleaned file exists in the directory
 if os.path.exists('cleaned_file.csv'):
     df = pd.read_csv('cleaned_file.csv')
+    st.write("CSV file loaded successfully!")
 else:
-    print("File not found in the app directory!")
+    st.error("File not found in the app directory!")
 
+relevant_keywords = ['iot', 'cybersecurity', 'machine learning', 'ai', 'data science', 'blockchain', 
+                     'developer', 'engineer', 'software', 'embedded', 'technologist']
 
-
-relevant_keywords = ['iot', 'cybersecurity', 'machine learning', 'ai', 'data science', 'blockchain', 'developer', 'engineer', 'software', 'embedded', 'technologist']
-# Preprocessing and Cleaning Functions
+# Define the cleaning function
 def clean_text(txt):
     stop_words = set(stopwords.words('english'))
     lemmatizer = WordNetLemmatizer()
-    clean_text = re.sub(r'http\S+\s|RT|cc|#\S+\s|@\S+|[^\x00-\x7f]', ' ', txt)
+    clean_text = re.sub(r'http\S+\s|RT|cc|#\S+\s|@\S+|[^\x00-\x7f]', ' ', str(txt))
     clean_text = re.sub(r'[%s]' % re.escape("""!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"""), ' ', clean_text)
     clean_text = re.sub(r'\s+', ' ', clean_text).strip().lower()
     tokens = word_tokenize(clean_text)
     tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words and word.isalpha()]
     return ' '.join(tokens)
 
-
-
+# Apply the cleaning function
 df['cleaned_job_title'] = df['Job Title'].apply(clean_text)
 df['cleaned_skills'] = df['Skills'].apply(clean_text)
 
@@ -63,8 +57,36 @@ def is_relevant_job(title):
 df['relevant'] = df['cleaned_job_title'].apply(is_relevant_job)
 df = df[df['relevant']]  # Filter the dataframe to keep only relevant rows
 
+# Display a preview of the cleaned data
+st.write(df[['Job Title', 'cleaned_job_title', 'Skills', 'cleaned_skills']].head())
 
-# Extract text from PDF using PyMuPDF
+# Extract job titles and skills from the CSV file
+job_titles = df['Job Title'].sort_values().unique()  # Alphabetical order
+skills_dict = dict(zip(df['Job Title'], df['Skills']))
+
+# Sidebar Navigation
+st.sidebar.title("Navigation")
+page = st.sidebar.selectbox("Go to", ["Home", "About Us", "Resume Analyzer", "Find Jobs", "Enhance Skills", "Contact Us"])
+
+# Display Header
+st.markdown("<div class='title'>Intelligent Resume Analysis And Job Fit Assessment System</div>", unsafe_allow_html=True)
+
+# Example of how to handle PDF file uploads for text extraction
+uploaded_pdf = st.file_uploader("Upload a PDF file for job description", type="pdf")
+    
+if uploaded_pdf is not None:
+    text = extract_text_from_pdf(uploaded_pdf)
+    st.write(text)
+
+# Initialize TF-IDF Vectorizer and KNN Model
+vectorizer = TfidfVectorizer(max_features=5000)
+job_descriptions = df['Skills'].apply(clean_text).tolist()
+X = vectorizer.fit_transform(job_descriptions)
+
+knn = NearestNeighbors(n_neighbors=5, metric='cosine')
+knn.fit(X)
+
+# Function to extract text from PDF
 def extract_text_from_pdf(uploaded_file):
     text = ""
     try:
@@ -75,42 +97,20 @@ def extract_text_from_pdf(uploaded_file):
         st.error(f"Failed to extract text from the PDF: {e}")
     return text
 
-# Initialize TF-IDF Vectorizer and KNN Model
-vectorizer = TfidfVectorizer(max_features=5000)
-job_descriptions = df['Skills'].apply(clean_text).tolist()
-X = vectorizer.fit_transform(job_descriptions)
-
-knn = NearestNeighbors(n_neighbors=5, metric='cosine')
-knn.fit(X)
-
+# Customize Streamlit app style
 st.markdown("""<style>
     body {
-        background-color: grey;  /* Light, clean background */
+        background-color: grey;  
         color: pink;
         font-family: Georgia, 'Times New Roman', Times, serif;
-
     }
-
     .title {
         text-align: center;
-        color: blue;  /* Bright Blue */
+        color: blue;  
         font-size: 30px;
         font-weight: 700;
         text-transform: uppercase;
-        font-family: Georgia, 'Times New Roman', Times, serif;
-
-
     }
-
-    .subtitle {
-        text-align: left;
-        font-size: 20px;
-        color: red;
-        font-weight: 650;
-        font-family: Arial, Helvetica, sans-serif;
-
-    }
-
     .footer {
         text-align: center;
         padding: 20px;
@@ -118,156 +118,14 @@ st.markdown("""<style>
         background-color: #1d61b4;
         font-size: 14px;
     }
-    .job-list {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);  /* 3 items per row */
-        gap: 20px;
-        margin-top: 20px;
-    }
+</style>""", unsafe_allow_html=True)
 
-    /* Job Item Style */
-    .job-item {
-        background-color: #ff6f61;  /* Bright Coral */
-        color: white;
-        border-radius: 15px;
-        font-size: 18px;
-        font-weight: bold;
-        text-align: center;
-        box-sizing: border-box;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        cursor: pointer;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-    }
+# Add interactive elements like buttons
+st.button("Explore More Jobs")
 
-    .job-item:hover {
-        transform: scale(1.05);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-        background-color: #ff4b39;  /* Darker Coral */
-    }
+# Footer
+st.markdown("<div class='footer'>Intelligent Resume Analysis and Job Fit Assessment System. All rights reserved.</div>", unsafe_allow_html=True)
 
-    /* Load More Button */
-    .load-more-btn {
-        background-color: #64b5f6;  /* Light Blue */
-        color: white;
-        font-size: 20px;
-        font-weight: bold;
-        border-radius: 50px;
-        text-align: center;
-        cursor: pointer;
-        border: none;
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-        animation: pulse 1s infinite;
-        padding: 15px 30px;
-    }
-
-    .load-more-btn:hover {
-        background-color: #039be5;  /* Deep Blue */
-        transform: scale(1.05);
-    }
-
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-        100% { transform: scale(1); }
-    }
-
-    /* Table Styling */
-    table {
-        width: 100%;
-        text-align: center;
-        border-collapse: collapse;
-        margin-top: 20px;
-    }
-
-    table, th, td {
-        border: 1px solid #5e92f3;  /* Soft Blue */
-        border-radius: 5px;
-    }
-
-    th, td {
-        padding: 12px;
-        background-color: #f3f9fc;  /* Light Blue Background */
-    }
-
-    th {
-        background-color: #1976d2;  /* Blue */
-        color: white;
-    }
-
-    /* Explore More Button */
-    .explore-more-btn {
-        background-color: #ff9800;  /* Bright Orange */
-        color: white;
-        padding: 15px 30px;
-        font-size: 20px;
-        font-weight: bold;
-        border-radius: 50px;
-        text-align: center;
-        cursor: pointer;
-        border: none;
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-        animation: pulse 0.5s infinite;
-        margin-top: 30px;
-    }
-
-    .explore-more-btn:hover {
-        background-color: #f57c00;  /* Darker Orange */
-        transform: scale(1.05);
-    }
-
-    /* Button Style for Visual Appeal */
-    .btn {
-        padding: 15px 30px;
-        font-size: 18px;
-        border-radius: 50px;
-        text-align: center;
-        color: white;
-        cursor: pointer;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        margin-top: 10px;
-        display: inline-block;
-    }
-
-    .btn:hover {
-        transform: scale(1.05);
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .btn-primary {
-        background-color: #4caf50;  /* Green */
-    }
-
-    .btn-primary:hover {
-        background-color: #388e3c;
-    }
-
-    .btn-secondary {
-        background-color: #f44336;  /* Red */
-    }
-
-    .btn-secondary:hover {
-        background-color: #d32f2f;
-    }
-
-</style>
-""", unsafe_allow_html=True)
-
-
-# Extract job titles and skills from the CSV file
-job_titles = df['Job Title'].sort_values().unique()  # Alphabetical order
-skills_dict = dict(zip(df['Job Title'], df['Skills']))
-
-# Sidebar Navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.selectbox("Go to", ["Home", "About Us", "Resume Analyzer", "Find Jobs", "Enhance Skills", "Contact Us"])
-
-# Header (no line breaks, ensures single-line heading)
-st.markdown("<div class='title'>Intelligent Resume Analysis And Job Fit Assessment System</div>", unsafe_allow_html=True)
 
 # Check which page to display using if-else statements
 if page == "Home":
