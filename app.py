@@ -1,39 +1,26 @@
-# from tkinter import Image
 import streamlit as st
-import nltk
-import os
-from PIL import Image
 import pandas as pd
-import re
+import os
 import nltk
-import numpy as np
-import matplotlib.pyplot as plt
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import re
+from PIL import Image
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
-import fitz  # PyMuPDF for PDF handling
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import NearestNeighbors
+import fitz  # PyMuPDF for PDF handling
 
 # Download NLTK data
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
 
-# Load the Dataset
-if os.path.exists('cleaned_file.csv'):
-    df = pd.read_csv('cleaned_file.csv')
-else:
-    print("File not found in the app directory!")
-
-
+# Predefined relevant keywords for job filtering
 relevant_keywords = ['iot', 'cybersecurity', 'machine learning', 'ai', 'data science', 'blockchain', 
                      'developer', 'engineer', 'software', 'embedded', 'technologist']
 
-# Define the cleaning function
+# Define the cleaning function for text data
 def clean_text(txt):
     stop_words = set(stopwords.words('english'))
     lemmatizer = WordNetLemmatizer()
@@ -44,6 +31,7 @@ def clean_text(txt):
     tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words and word.isalpha()]
     return ' '.join(tokens)
 
+# Initialize an empty dataframe at the start
 df = pd.DataFrame()
 
 # Handle File Upload
@@ -66,19 +54,16 @@ if uploaded_file is not None:
             # Remove duplicate rows based on cleaned job titles and skills
             df = df.drop_duplicates(subset=['cleaned_job_title', 'cleaned_skills'])
 
+            # Filter out irrelevant job titles based on keywords (enhanced filtering)
+            def is_relevant_job(title):
+                return any(keyword in title for keyword in relevant_keywords) and ('marine' not in title)
 
-
-# Remove duplicate rows based on cleaned job titles and skills
-# df = df.drop_duplicates(subset=['cleaned_job_title', 'cleaned_skills'])
-
-# Filter out irrelevant job titles based on keywords (enhanced filtering)
-          def is_relevant_job(title):
-             return any(keyword in title for keyword in relevant_keywords) and ('marine' not in title)
-
-# Keep only relevant job titles
+            # Keep only relevant job titles
             df['relevant'] = df['cleaned_job_title'].apply(is_relevant_job)
             df = df[df['relevant']]  # Filter the dataframe to keep only relevant rows
 
+    except Exception as e:
+        st.error(f"Error occurred while processing the file: {str(e)}")
 
 # Extract text from PDF using PyMuPDF
 def extract_text_from_pdf(uploaded_file):
@@ -92,12 +77,14 @@ def extract_text_from_pdf(uploaded_file):
     return text
 
 # Initialize TF-IDF Vectorizer and KNN Model
-vectorizer = TfidfVectorizer(max_features=5000)
-job_descriptions = df['Skills'].apply(clean_text).tolist()
-X = vectorizer.fit_transform(job_descriptions)
+if not df.empty:
+    vectorizer = TfidfVectorizer(max_features=5000)
+    job_descriptions = df['Skills'].apply(clean_text).tolist()
+    X = vectorizer.fit_transform(job_descriptions)
 
-knn = NearestNeighbors(n_neighbors=5, metric='cosine')
-knn.fit(X)
+    knn = NearestNeighbors(n_neighbors=5, metric='cosine')
+    knn.fit(X)
+
 
 st.markdown("""<style>
     body {
