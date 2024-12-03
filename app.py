@@ -16,6 +16,13 @@ nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
 
+# Function to clean text (adjust as per your needs)
+def clean_text(text):
+    text = text.lower()
+    text = re.sub(r'\s+', ' ', text)  # Remove extra spaces
+    text = re.sub(r'[^\w\s]', '', text)  # Remove punctuation
+    return text
+
 # Initialize an empty DataFrame to avoid NameError
 df = pd.DataFrame()
 
@@ -24,7 +31,7 @@ uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 if uploaded_file is not None:
     try:
         # Read the uploaded CSV file into a DataFrame
-       df = pd.read_csv('cleaned_file.csv')
+        df = pd.read_csv(uploaded_file)
         
         # Display the column names of the uploaded file to debug
         st.write("Uploaded file columns:", df.columns)
@@ -71,10 +78,6 @@ if not df.empty:
     knn.fit(X)
 else:
     st.warning("Please upload a valid CSV file containing job titles and skills.")
-
-# Continue with the rest of your code (e.g., navigation and other page logic)
-
-
 
 
 st.markdown("""<style>
