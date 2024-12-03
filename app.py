@@ -54,15 +54,13 @@ if not df.empty:
     df = df[df['relevant']]  # Filter the dataframe to keep only relevant rows
 
 # Extract text from PDF using PyMuPDF
-def extract_text_from_pdf(uploaded_file):
-    text = ""
-    try:
-        with fitz.open(stream=uploaded_file.read(), filetype="pdf") as doc:
-            for page in doc:
-                text += page.get_text()
-    except Exception as e:
-        st.error(f"Failed to extract text from the PDF: {e}")
-    return text
+uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+    if 'Job Title' not in df.columns:
+        st.error("The required column 'Job Title' is missing in the uploaded file.")
+    else:
+        st.success("File uploaded successfully")
 
 # Initialize TF-IDF Vectorizer and KNN Model for job description matching
 vectorizer = TfidfVectorizer(max_features=5000)
