@@ -29,6 +29,7 @@ def clean_text(txt):
     tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words and word.isalpha()]
     return ' '.join(tokens)
 
+df = pd.DataFrame()
 # Handle File Upload
 uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 if uploaded_file is not None:
