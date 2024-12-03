@@ -44,25 +44,40 @@ def clean_text(txt):
     tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words and word.isalpha()]
     return ' '.join(tokens)
 
-# Apply the cleaning function
-if not df.empty:
-    df['cleaned_job_title'] = df['Job Title'].apply(clean_text)
-    df['cleaned_skills'] = df['Skills'].apply(clean_text)
+df = pd.DataFrame()
 
-    # Remove duplicate rows based on cleaned job titles and skills
-    df = df.drop_duplicates(subset=['cleaned_job_title', 'cleaned_skills'])
+# Handle File Upload
+uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+if uploaded_file is not None:
+    try:
+        # Read the uploaded CSV file into a DataFrame
+        df = pd.read_csv(uploaded_file)
+        
+        # Check if the necessary columns ('Job Title' and 'Skills') are in the DataFrame
+        if 'Job Title' not in df.columns or 'Skills' not in df.columns:
+            st.error("The required columns 'Job Title' or 'Skills' are missing in the uploaded file.")
+        else:
+            st.success("File uploaded successfully")
+            
+            # Apply cleaning function to job title and skills
+            df['cleaned_job_title'] = df['Job Title'].apply(clean_text)
+            df['cleaned_skills'] = df['Skills'].apply(clean_text)
+            
+            # Remove duplicate rows based on cleaned job titles and skills
+            df = df.drop_duplicates(subset=['cleaned_job_title', 'cleaned_skills'])
+
 
 
 # Remove duplicate rows based on cleaned job titles and skills
 # df = df.drop_duplicates(subset=['cleaned_job_title', 'cleaned_skills'])
 
 # Filter out irrelevant job titles based on keywords (enhanced filtering)
-def is_relevant_job(title):
-    return any(keyword in title for keyword in relevant_keywords) and ('marine' not in title)
+          def is_relevant_job(title):
+             return any(keyword in title for keyword in relevant_keywords) and ('marine' not in title)
 
 # Keep only relevant job titles
-df['relevant'] = df['cleaned_job_title'].apply(is_relevant_job)
-df = df[df['relevant']]  # Filter the dataframe to keep only relevant rows
+            df['relevant'] = df['cleaned_job_title'].apply(is_relevant_job)
+            df = df[df['relevant']]  # Filter the dataframe to keep only relevant rows
 
 
 # Extract text from PDF using PyMuPDF
